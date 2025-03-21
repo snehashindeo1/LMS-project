@@ -222,45 +222,46 @@ export const getCourseLecture = async (req,res) => {
         })
     }
 }
-export const editLecture = async (req,res) => {
+export const editLecture = async (req, res) => {
     try {
-        const {lectureTitle, videoInfo, isPreviewFree} = req.body;
-        console.log("hey");
-        console.log(req.body);
+        console.log("Received request body:", req.body);
+        const { lectureTitle, videoInfo, isPreviewFree } = req.body;
+        const { courseId, lectureId } = req.params;
         
-        const {courseId, lectureId} = req.params;
-        const lecture = await Lecture.findById(lectureId);
-        if(!lecture){
-            return res.status(404).json({
-                message:"Lecture not found!"
-            })
+        if (!lectureId || !courseId) {
+            return res.status(400).json({ message: "Course ID and Lecture ID are required." });
         }
 
-        // update lecture
-        if(lectureTitle) lecture.lectureTitle = lectureTitle;
-        if(videoInfo?.videoUrl) lecture.videoUrl = videoInfo.videoUrl;
-        if(videoInfo?.publicId) lecture.publicId = videoInfo.publicId;
-        lecture.isPreviewFree = isPreviewFree;
+        const lecture = await Lecture.findById(lectureId);
+        if (!lecture) {
+            return res.status(404).json({ message: "Lecture not found!" });
+        }
+
+        // Ensure videoInfo has correct structure before updating lecture
+        if (videoInfo && videoInfo.videoUrl && videoInfo.publicId) {
+            lecture.videoUrl = videoInfo.videoUrl;
+            lecture.publicId = videoInfo.publicId;
+        }
+
+        if (lectureTitle) lecture.lectureTitle = lectureTitle;
+        if (typeof isPreviewFree !== 'undefined') lecture.isPreviewFree = isPreviewFree;
 
         await lecture.save();
 
-        // Ensure the course still has the lecture id if it was not aleardy added;
         const course = await Course.findById(courseId);
-        if(course && !course.lectures.includes(lecture._id)){
+        if (course && !course.lectures.includes(lecture._id)) {
             course.lectures.push(lecture._id);
             await course.save();
-        };
-        return res.status(200).json({
-            lecture,
-            message:"Lecture updated successfully."
-        })
+        }
+
+        return res.status(200).json({ lecture, message: "Lecture updated successfully." });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            message:"Failed to edit lectures"
-        })
+        console.error("Error updating lecture:", error);
+        return res.status(500).json({ message: "Failed to edit lecture" });
     }
-}
+};
+
+
 export const removeLecture = async (req,res) => {
     try {
         const {lectureId} = req.params;

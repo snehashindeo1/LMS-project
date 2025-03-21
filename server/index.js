@@ -29,10 +29,11 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // Update this for production
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   })
 );
+
 
 // API Routes
 app.use("/api/v1/media", mediaRoute);
